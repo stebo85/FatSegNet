@@ -59,6 +59,8 @@ def option_parse():
                     'The predicted segmentation mask is save under ($AAT_pred) and all the statistics under $ATT_stats',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-f", "--file", help="csv file containing the subjects to process, the csv file should be order as follow : $subject_id,$subject_path", required=False,default='participants.csv')
+    parser.add_argument("-i", "--input_path", help="input data folder", required=False,default='/tool/Data')
+    parser.add_argument("-o", "--output_path", help="output data folder", required=False,default='/tool/Output')
     parser.add_argument("-outp", "--output_folder",
                         help="Main folder where the variables and control images are going to be store", required=False, default='')
 
@@ -99,11 +101,14 @@ def option_parse():
     args = parser.parse_args()
 
     FLAGS = {}
-    FLAGS['multiviewModel'] = '/tool/Adipose_Seg_Models/Segmentation/'
-    FLAGS['singleViewModels'] = '/tool/Adipose_Seg_Models/Segmentation/'
-    FLAGS['localizationModels'] = '/tool/Adipose_Seg_Models/Localization/'
-    FLAGS['input_path']='/tool/Data'
-    FLAGS['output_path']='/tool/Output'
+    current_directory=os.path.dirname(os.path.abspath(__file__))
+    FLAGS['multiviewModel'] = os.path.join(current_directory,'Adipose_Seg_Models/Segmentation/')
+    FLAGS['singleViewModels'] = os.path.join(current_directory,'Adipose_Seg_Models/Segmentation/')
+    FLAGS['localizationModels'] = os.path.join(current_directory,'Adipose_Seg_Models/Localization/')
+    print('loading models from here: ',FLAGS['multiviewModel'])
+
+    FLAGS['input_path']=args.input_path
+    FLAGS['output_path']=args.output_path
     FLAGS['imgSize'] = [256, 224, 72]
     FLAGS['spacing'] = [float(1.9531), float(1.9531),float(5.0)]
     FLAGS['base_ornt'] = np.array([[0, -1], [1, 1], [2, 1]])

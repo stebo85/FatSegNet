@@ -5,6 +5,8 @@ This repository contains the tool  designed for the [Rhineland Study](https://ww
 for segmenting visceral and subcuteneous adipose tissue on fat 
 images from a two-point Dixon sequence. 
 
+This fork was modified to work with Nipype and not require docker.
+
 If you use this tool please cite:
 
 Estrada, Santiago, et al. "FatSegNet: A fully automated deep learning pipeline for adipose tissue segmentation on abdominal dixon MRI." Magnetic resonance in medicine 83.4 (2020): 1471-1483. [https:// doi.org/10.1002/mrm.28022](https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.28022)
@@ -21,7 +23,26 @@ Estrada, Santiago, et al. "FatSegNet: A fully automated deep learning pipeline f
 }
 ```
 
-## Usage
+## Conda installation
+```
+conda create -n fatsegnetGPU python=3.5
+conda activate fatsegnetGPU
+conda install tensorflow-gpu
+pip install nibabel
+conda install pandas
+conda install h5py
+conda install matplotlib
+conda install scikit-image
+conda install keras
+```
+
+## Usage (Conda/Nipype)
+```
+conda activate fatsegnetGPU
+
+```
+
+## Usage (Docker)
 
 We wrap our tool on a docker image, so there is no need to install any library dependencies or drivers, 
 the only requirement is to have docker (cpu) or 

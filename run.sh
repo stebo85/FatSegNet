@@ -1,0 +1,1 @@
+python3 tool/run_FatSegNet.py
