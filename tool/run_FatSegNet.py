@@ -109,6 +109,9 @@ def option_parse():
 
     FLAGS['input_path']=args.input_path
     FLAGS['output_path']=args.output_path
+    print('loading data from here: ',FLAGS['input_path'])
+    print('storing output here: ',FLAGS['output_path'])
+
     FLAGS['imgSize'] = [256, 224, 72]
     FLAGS['spacing'] = [float(1.9531), float(1.9531),float(5.0)]
     FLAGS['base_ornt'] = np.array([[0, -1], [1, 1], [2, 1]])
