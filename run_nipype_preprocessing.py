@@ -60,6 +60,7 @@ def create_fatsegnet_workflow(
             (n_selectfiles, mn_n4_fat, [('fat_composed', 'input_image')]),
         ])
 
+        # https://nipype.readthedocs.io/en/latest/api/generated/nipype.interfaces.ants.html
         mn_n4_water = Node(
             interface=N4BiasFieldCorrection(),
             iterfield=['input_image'],
@@ -78,7 +79,7 @@ def create_fatsegnet_workflow(
         fsl_cmd = ""
 
         # set range to [0, 2pi]
-        fsl_cmd += "-mul %.10f " % (7)
+        fsl_cmd += "-mul %.10f " % (4)
 
         return fsl_cmd
 
@@ -173,8 +174,8 @@ def create_fatsegnet_workflow(
     # https://pythex.org/: search for sub-, then 5 numbers then _t1 and grab the rest
 
     wf.connect([
-            (mn_fat_scaled, n_datasink_fat, [('out_file', 'preprocessed.@fat')]),
-            (mn_water_scaled, n_datasink_water, [('out_file', 'preprocessed.@water')]),
+            (mn_fat_scaled, n_datasink_fat, [('out_file', 'preprocessed_mul4.@fat')]),
+            (mn_water_scaled, n_datasink_water, [('out_file', 'preprocessed_mul4.@water')]),
         ])
     # https://nipype.readthedocs.io/en/0.11.0/users/grabbing_and_sinking.html
     # https://miykael.github.io/nipype_tutorial/notebooks/example_1stlevel.html
@@ -265,6 +266,7 @@ if __name__ == "__main__":
         work_dir=os.path.abspath(args.work_dir),
         out_dir=os.path.abspath(args.out_dir),
         bids_templates=bids_templates,
+        n4=False
     )
 
     os.makedirs(os.path.abspath(args.work_dir), exist_ok=True)
