@@ -175,9 +175,12 @@ def run_adipose_pipeline(args,flags,save_path='/',data_path='/',id='Test'):
     print(id)
     sub = id
 
-
-    fat_file = locate_file('*'+str(args.fat_image), data_path)
-    water_file = locate_file('*'+str(args.water_image), data_path)
+    if data_path=='/':
+        fat_file = [args.fat_image]
+        water_file = [args.water_image]
+    else:
+        fat_file = locate_file('*'+str(args.fat_image), data_path)
+        water_file = locate_file('*'+str(args.water_image), data_path)
 
 
 

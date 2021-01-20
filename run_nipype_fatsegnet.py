@@ -10,19 +10,17 @@ from nipype.pipeline.engine import Workflow, Node, MapNode
 
 import argparse
 
+from interfaces import nipype_interface_fatsegnet as fatsegnet
+
 def create_fatsegnet_workflow(
     subject_list,
     bids_dir,
     work_dir,
     out_dir,
     bids_templates,
-    threshold=30,
-    extra_fill_strength=0,
-    homogeneity_filter=True,
-    qsm_threads=1
 ):
     # create initial workflow
-    wf = Workflow(name='workflow_qsm', base_dir=work_dir)
+    wf = Workflow(name='workflow_fatsegnet', base_dir=work_dir)
 
     # use infosource to iterate workflow across subject list
     n_infosource = Node(
@@ -56,7 +54,7 @@ def create_fatsegnet_workflow(
         fsl_cmd = ""
 
         # set range to [0, 2pi]
-        fsl_cmd += "-mul %.10f " % (10)
+        fsl_cmd += "-mul %.10f " % (5)
 
         return fsl_cmd
 
@@ -99,6 +97,22 @@ def create_fatsegnet_workflow(
         (mn_fat_stats, mn_fat_scaled, [(('out_stat', scale), 'op_string')]),
         (mn_water_stats, mn_water_scaled, [(('out_stat', scale), 'op_string')])
     ])
+
+
+    mn_fatsegnet = MapNode(
+            interface=fatsegnet.FatSegNetInterface(
+                out_suffix='/afm02/Q2/Q2653/data/2021-01-18-fatsegnet-output/out_5'
+            ),
+            iterfield=['water_file', 'fat_file'],
+            name='fatsegnet'
+            # output: 'out_file'
+        )
+
+    wf.connect([
+            (mn_fat_scaled, mn_fatsegnet, [('out_file', 'fat_file')]),
+            (mn_water_scaled, mn_fatsegnet, [('out_file', 'water_file')]),
+        ])
+
 
     # datasink
     n_datasink = Node(
@@ -210,7 +224,8 @@ if __name__ == "__main__":
     else:
         wf.run(
             plugin='MultiProc',
-            plugin_args={
-                'n_procs': int(os.environ["NCPUS"]) if "NCPUS" in os.environ else int(os.cpu_count())
-            }
+            plugin_args={'n_procs': 1}
+            # plugin_args={
+            #     'n_procs': int(os.environ["NCPUS"]) if "NCPUS" in os.environ else int(os.cpu_count())
+            # }
         )
