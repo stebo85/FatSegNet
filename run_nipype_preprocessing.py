@@ -19,6 +19,7 @@ def create_fatsegnet_workflow(
     work_dir,
     out_dir,
     bids_templates,
+    n4=False
 ):
     # create initial workflow
     wf = Workflow(name='workflow_fatsegnet', base_dir=work_dir)
@@ -48,24 +49,36 @@ def create_fatsegnet_workflow(
         (n_infosource, n_selectfiles, [('subject_id', 'subject_id_p')])
     ])
 
-    # mn_n4 = MapNode(
-    #     interface=N4BiasFieldCorrection(),
-    #     iterfield=['input_image'],
-    #     name='N4',
-    #     # output: 'output_image'
-    # )
-    # wf.connect([
-    #     (n_selectfiles, mn_n4, [('fat_composed', 'input_image')]),
-    # ])
+    if n4:
+        mn_n4_fat = Node(
+            interface=N4BiasFieldCorrection(),
+            iterfield=['input_image'],
+            name='N4_fat',
+            # output: 'output_image'
+        )
+        wf.connect([
+            (n_selectfiles, mn_n4_fat, [('fat_composed', 'input_image')]),
+        ])
+
+        mn_n4_water = Node(
+            interface=N4BiasFieldCorrection(),
+            iterfield=['input_image'],
+            name='N4_water',
+            # output: 'output_image'
+        )
+        wf.connect([
+            (n_selectfiles, mn_n4_water, [('water_composed', 'input_image')]),
+        ])
 
     # scale data
+    # or better: https://intensity-normalization.readthedocs.io/en/latest/utilities.html
     def scale(min_and_max):
         min_value = min_and_max[0][0]
         max_value = min_and_max[0][1]
         fsl_cmd = ""
 
         # set range to [0, 2pi]
-        fsl_cmd += "-mul %.10f " % (5)
+        fsl_cmd += "-mul %.10f " % (7)
 
         return fsl_cmd
 
@@ -83,11 +96,18 @@ def create_fatsegnet_workflow(
         name='get_stats_water',
         # output: 'out_stat'
     )
-    wf.connect([
-        (n_selectfiles, mn_fat_stats, [('fat_composed', 'in_file')]),
-        (n_selectfiles, mn_water_stats, [('water_composed', 'in_file')])
-    ])
 
+    if n4:
+        wf.connect([
+            (mn_n4_fat, mn_fat_stats, [('output_image', 'in_file')]),
+            (mn_n4_water, mn_water_stats, [('output_image', 'in_file')])
+        ])
+    else:
+        wf.connect([
+            (n_selectfiles, mn_fat_stats, [('fat_composed', 'in_file')]),
+            (n_selectfiles, mn_water_stats, [('water_composed', 'in_file')])
+        ])
+    
     mn_fat_scaled = Node(
         interface=ImageMaths(suffix="_scaled"),
         name='fat_scaled',
@@ -102,14 +122,22 @@ def create_fatsegnet_workflow(
         # inputs: 'in_file', 'op_string'
         # output: 'out_file'
     )
-    wf.connect([
-        (n_selectfiles, mn_fat_scaled, [('fat_composed', 'in_file')]),
-        (n_selectfiles, mn_water_scaled, [('water_composed', 'in_file')]),
-        (mn_fat_stats, mn_fat_scaled, [(('out_stat', scale), 'op_string')]),
-        (mn_water_stats, mn_water_scaled, [(('out_stat', scale), 'op_string')])
-    ])
+    if n4:
+        wf.connect([
+            (mn_n4_fat, mn_fat_scaled, [('output_image', 'in_file')]),
+            (mn_n4_water, mn_water_scaled, [('output_image', 'in_file')]),
+            (mn_fat_stats, mn_fat_scaled, [(('out_stat', scale), 'op_string')]),
+            (mn_water_stats, mn_water_scaled, [(('out_stat', scale), 'op_string')])
+        ])
+    else:
+        wf.connect([
+            (n_selectfiles, mn_fat_scaled, [('fat_composed', 'in_file')]),
+            (n_selectfiles, mn_water_scaled, [('water_composed', 'in_file')]),
+            (mn_fat_stats, mn_fat_scaled, [(('out_stat', scale), 'op_string')]),
+            (mn_water_stats, mn_water_scaled, [(('out_stat', scale), 'op_string')])
+        ])
 
-
+    # fatsegnet could work here when running on cluster, but in multiproc memory issues on GPU
     # mn_fatsegnet = MapNode(
     #         interface=fatsegnet.FatSegNetInterface(
     #             out_suffix='/afm02/Q2/Q2653/data/2021-01-18-fatsegnet-output/out_5'
