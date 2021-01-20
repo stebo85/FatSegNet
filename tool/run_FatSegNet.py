@@ -154,12 +154,14 @@ def run_fatsegnet(args,FLAGS):
                 file_list=df.values
         else:
             print('No partipant file found. Inferring from content of input directory.')
-            file_list=os.listdir(FLAGS['input_path'])
+            file_list=os.listdir(os.path.join(FLAGS['input_path']))
 
         print('Filelist: ', file_list)
 
         for sub in file_list:
-            id=sub[0]
+            # id=sub[0]
+            id=sub
+            print('Processing ID: ', id)
             path = locate_dir('*'+str(id)+'*',FLAGS['input_path'])
             if path:
                 if os.path.isdir(path[0]):

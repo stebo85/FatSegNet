@@ -7,6 +7,7 @@ from nipype.interfaces.fsl import BET, ImageMaths, ImageStats, MultiImageMaths, 
 from nipype.interfaces.utility import IdentityInterface, Function
 from nipype.interfaces.io import SelectFiles, DataSink
 from nipype.pipeline.engine import Workflow, Node, MapNode
+from nipype.interfaces.ants import N4BiasFieldCorrection
 
 import argparse
 
@@ -47,6 +48,16 @@ def create_fatsegnet_workflow(
         (n_infosource, n_selectfiles, [('subject_id', 'subject_id_p')])
     ])
 
+    # mn_n4 = MapNode(
+    #     interface=N4BiasFieldCorrection(),
+    #     iterfield=['input_image'],
+    #     name='N4',
+    #     # output: 'output_image'
+    # )
+    # wf.connect([
+    #     (n_selectfiles, mn_n4, [('fat_composed', 'input_image')]),
+    # ])
+
     # scale data
     def scale(min_and_max):
         min_value = min_and_max[0][0]
@@ -77,14 +88,14 @@ def create_fatsegnet_workflow(
         (n_selectfiles, mn_water_stats, [('water_composed', 'in_file')])
     ])
 
-    mn_fat_scaled = MapNode(
+    mn_fat_scaled = Node(
         interface=ImageMaths(suffix="_scaled"),
         name='fat_scaled',
         iterfield=['in_file']
         # inputs: 'in_file', 'op_string'
         # output: 'out_file'
     )
-    mn_water_scaled = MapNode(
+    mn_water_scaled = Node(
         interface=ImageMaths(suffix="_scaled"),
         name='water_scaled',
         iterfield=['in_file']
@@ -99,31 +110,49 @@ def create_fatsegnet_workflow(
     ])
 
 
-    mn_fatsegnet = MapNode(
-            interface=fatsegnet.FatSegNetInterface(
-                out_suffix='/afm02/Q2/Q2653/data/2021-01-18-fatsegnet-output/out_5'
-            ),
-            iterfield=['water_file', 'fat_file'],
-            name='fatsegnet'
-            # output: 'out_file'
-        )
+    # mn_fatsegnet = MapNode(
+    #         interface=fatsegnet.FatSegNetInterface(
+    #             out_suffix='/afm02/Q2/Q2653/data/2021-01-18-fatsegnet-output/out_5'
+    #         ),
+    #         iterfield=['water_file', 'fat_file'],
+    #         name='fatsegnet'
+    #         # output: 'out_file'
+    #     )
 
-    wf.connect([
-            (mn_fat_scaled, mn_fatsegnet, [('out_file', 'fat_file')]),
-            (mn_water_scaled, mn_fatsegnet, [('out_file', 'water_file')]),
-        ])
+    # wf.connect([
+    #         (mn_fat_scaled, mn_fatsegnet, [('out_file', 'fat_file')]),
+    #         (mn_water_scaled, mn_fatsegnet, [('out_file', 'water_file')]),
+    #     ])
 
 
     # datasink
-    n_datasink = Node(
-        interface=DataSink(base_directory=bids_dir, container=out_dir),
-        name='datasink'
+    n_datasink_fat = Node(
+        interface=DataSink(base_directory=bids_dir, 
+            container=out_dir,
+            parameterization=True, 
+            substitutions=[('_subject_id_', '')],
+            regexp_substitutions=[('sub-\w{5}_t1.*', 'FatImaging_F.nii.gz')]),
+        name='datasink_fat'
+    )    
+    n_datasink_water = Node(
+        interface=DataSink(base_directory=bids_dir, 
+            container=out_dir,
+            parameterization=True, 
+            substitutions=[('_subject_id_', '')],
+            regexp_substitutions=[('sub-\w{5}_t1.*', 'FatImaging_W.nii.gz')]),
+        name='datasink_water'
     )
+    # https://pythex.org/: search for sub-, then 5 numbers then _t1 and grab the rest
 
     wf.connect([
-            (mn_fat_scaled, n_datasink, [('out_file', 'fat_scaled')]),
-            (mn_water_scaled, n_datasink, [('out_file', 'water_scaled')]),
+            (mn_fat_scaled, n_datasink_fat, [('out_file', 'preprocessed.@fat')]),
+            (mn_water_scaled, n_datasink_water, [('out_file', 'preprocessed.@water')]),
         ])
+    # https://nipype.readthedocs.io/en/0.11.0/users/grabbing_and_sinking.html
+    # https://miykael.github.io/nipype_tutorial/notebooks/example_1stlevel.html
+    # The period (.) indicates that a subfolder should be created. 
+    # But if we wanted to store it in the same folder, 
+    # we would use the .@ syntax. The @ tells the DataSink interface to not create the subfolder. 
 
     return wf
 
@@ -224,7 +253,7 @@ if __name__ == "__main__":
     else:
         wf.run(
             plugin='MultiProc',
-            plugin_args={'n_procs': 1}
+            plugin_args={'n_procs': 12}
             # plugin_args={
             #     'n_procs': int(os.environ["NCPUS"]) if "NCPUS" in os.environ else int(os.cpu_count())
             # }
