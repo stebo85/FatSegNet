@@ -64,9 +64,9 @@ def option_parse():
     parser.add_argument("-outp", "--output_folder",
                         help="Main folder where the variables and control images are going to be store", required=False, default='')
 
-    parser.add_argument("-fat", "--fat_image", type=str, help="Name of the fat image", required=False,
+    parser.add_argument("-fat", "--fat_image", type=str, help="Full path to the fat image", required=False,
                         default='FatImaging_F.nii.gz')
-    parser.add_argument("-water", "--water_image", type=str, help="Name of the water image", required=False,
+    parser.add_argument("-water", "--water_image", type=str, help="Full path to the water image", required=False,
                         default='FatImaging_W.nii.gz')
 
     parser.add_argument('-No_QC',"--control_images",action='store_true',help='Plot subjects prediction for visual quality control',required=False,default=False)
@@ -124,49 +124,53 @@ def option_parse():
 
 def run_fatsegnet(args,FLAGS):
 
-    # load file
+    # load from file or infer from input directory content
     participant_file=locate_file('*'+args.file,FLAGS['input_path'])
     if participant_file:
         print('Loading participant from file : %s'%participant_file[0])
         df =pd.read_csv(participant_file[0],header=None)
         if df.empty:
-            print('Participant file empty ')
+            print('Participant file empty. Inferring from content of input directory. ')
+            file_list=os.listdir(FLAGS['input_path'])
         else:
             file_list=df.values
-            for sub in file_list:
-                id=sub[0]
-                path = locate_dir('*'+str(id)+'*',FLAGS['input_path'])
-                if path:
-                    if os.path.isdir(path[0]):
-
-                        start = time.time()
-
-                        save_path = check_paths(save_folder=args.output_folder, subject_id=str(id),flags=FLAGS)
-
-                        sys.stdout= Transcript(filename=save_path + '/temp.log')
-
-                        run_adipose_pipeline(args=args, flags=FLAGS, save_path=save_path,data_path=path[0],id=str(id))
-
-                        end = time.time() - start
-
-                        print("Total time for computation of segmentation is %0.4f seconds."%end)
-
-                        sys.stdout.logfile.close()
-                        sys.stdout = sys.stdout.terminal
-                    else:
-                        print ('Directory %s not found'%path)
-                else :
-                    print('Directory name %s not found' % id)
-            print('\n')
-            print('Thank you for using FatSegNet')
-            print('If you find it useful and use it for a publication, please cite: ')
-            print('\n')
-            print('Estrada S, Lu R, Conjeti S, et al.'
-                  'FatSegNet: A fully automated deep learning pipeline for adipose tissue segmentation on abdominal dixon MRI.'
-                  'Magn Reson Med. 2019;00:1-13. https:// doi.org/10.1002/mrm.28022')
     else:
-        print('No partipant file found, please provide one the input data folder')
+        print('No partipant file found. Inferring from content of input directory.')
+        file_list=os.listdir(FLAGS['input_path'])
 
+    print('Filelist: ', file_list)
+
+    for sub in file_list:
+        id=sub[0]
+        path = locate_dir('*'+str(id)+'*',FLAGS['input_path'])
+        if path:
+            if os.path.isdir(path[0]):
+
+                start = time.time()
+
+                save_path = check_paths(save_folder=args.output_folder, subject_id=str(id),flags=FLAGS)
+
+                sys.stdout= Transcript(filename=save_path + '/temp.log')
+
+                run_adipose_pipeline(args=args, flags=FLAGS, save_path=save_path,data_path=path[0],id=str(id))
+
+                end = time.time() - start
+
+                print("Total time for computation of segmentation is %0.4f seconds."%end)
+
+                sys.stdout.logfile.close()
+                sys.stdout = sys.stdout.terminal
+            else:
+                print ('Directory %s not found'%path)
+        else :
+            print('Directory name %s not found' % id)
+        print('\n')
+        print('Thank you for using FatSegNet')
+        print('If you find it useful and use it for a publication, please cite: ')
+        print('\n')
+        print('Estrada S, Lu R, Conjeti S, et al.'
+                'FatSegNet: A fully automated deep learning pipeline for adipose tissue segmentation on abdominal dixon MRI.'
+                'Magn Reson Med. 2019;00:1-13. https:// doi.org/10.1002/mrm.28022')
 
 
 if __name__=='__main__':

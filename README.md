@@ -28,12 +28,24 @@ Estrada, Santiago, et al. "FatSegNet: A fully automated deep learning pipeline f
 conda create -n fatsegnetGPU python=3.5
 conda activate fatsegnetGPU
 conda install tensorflow-gpu
-pip install nibabel
 conda install pandas
 conda install h5py
 conda install matplotlib
 conda install scikit-image
 conda install keras
+```
+
+```
+conda create -n fatsegnetGPUnipype python=3.5
+conda activate fatsegnetGPUnipype
+conda install tensorflow-gpu
+conda install pandas
+conda install h5py
+conda install matplotlib
+conda install scikit-image
+conda install keras
+conda install nipype -c conda-forge
+pip install dicom
 ```
 
 ## Usage (Conda/Nipype)
