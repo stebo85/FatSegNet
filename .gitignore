@@ -4,3 +4,4 @@ __pycache__
 tool/Code/__pycache__/*
 *cpython*
 
+run_0_correctNiftiDataNames.sh
